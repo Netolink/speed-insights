@@ -118,12 +118,13 @@ export default function App() {
         }
       }
 
-      // Safeguard check to bypass frame busting inside development hosts, run.app, Google, and AI Studio
+      // Safeguard check to bypass frame busting inside development hosts, run.app, Google, github.io, and AI Studio
       const currentHost = window.location.hostname;
       const isDevEnv =
         currentHost === "localhost" ||
         currentHost.includes("127.0.0.1") ||
         currentHost.includes("run.app") ||
+        currentHost.includes("github.io") ||
         (document.referrer && (
           document.referrer.includes("ai.studio") ||
           document.referrer.includes("google.com")
@@ -131,9 +132,26 @@ export default function App() {
 
       if (!isAuthorized && !isDevEnv) {
         try {
-          window.top.location.href = window.self.location.href;
+          document.body.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background-color: #f8fafc; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 20px; text-align: center; color: #1e293b;" dir="rtl">
+              <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1); padding: 32px; max-width: 440px; width: 100%;">
+                <div style="width: 56px; height: 56px; background-color: #fef2f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                  <svg style="width: 28px; height: 28px; color: #ef4444;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <h1 style="font-size: 20px; font-weight: 700; margin-bottom: 12px; color: #0f172a;">שגיאת אבטחה</h1>
+                <p style="font-size: 14px; line-height: 1.6; color: #64748b; margin-bottom: 24px;">
+                  הטמעת כלי זה מורשית אך ורק באתר הרשמי של <strong>נטולינק</strong>.
+                </p>
+                <a href="https://netolink.com" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #2563eb; color: #ffffff; font-weight: 600; font-size: 14px; padding: 12px 24px; border-radius: 10px; text-decoration: none; transition: background-color 0.15s ease-in-out;">
+                  מעבר לאתר הרשמי של נטולינק
+                </a>
+              </div>
+            </div>
+          `;
         } catch (e) {
-          window.top.location.href = window.self.location.href;
+          // Fallback if DOM mutation is restricted
         }
       }
     }
