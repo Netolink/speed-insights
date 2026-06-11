@@ -1,0 +1,6 @@
+{
+  "name": "PageSpeed Insights Audit",
+  "description": "A comprehensive Website Speed Test and Audit tool powered by Google PageSpeed Insights API, displaying Core Web Vitals, Category Gauges, and Performance Opportunities with Mobile/Desktop toggles.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
