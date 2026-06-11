@@ -183,8 +183,8 @@ export default function App() {
       return;
     }
 
-    // Select API Key from Vite env variables
-    const apiKey = "AIzaSyC9bPMq4DxpxKEbnatTYfH3IG-31Tqk3xE" | import.meta.env.VITE_PAGESPEED_API_KEY || import.meta.env.VITE_GOOGLE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
+    // Select API Key from Vite env variables or hardcoded fallback
+    const apiKey = import.meta.env.VITE_PAGESPEED_API_KEY || import.meta.env.VITE_GOOGLE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyC9bPMq4DxpxKEbnatTYfH3IG-31Tqk3xE";
 
     // Build Google PageSpeed Insights endpoint URL
     const googleApiUrl = new URL("https://www.googleapis.com/pagespeedonline/v5/runPagespeed");
@@ -210,6 +210,7 @@ export default function App() {
           headers: {
             "Accept": "application/json",
           },
+          referrerPolicy: "no-referrer-when-downgrade",
           signal: controller.signal,
         });
       } catch (fetchErr: any) {
