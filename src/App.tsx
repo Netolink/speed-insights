@@ -632,7 +632,7 @@ export default function App() {
   const presetWebsites = [
     { name: "wikipedia.org", url: "wikipedia.org" },
     { name: "github.com", url: "github.com" },
-    { name: "nytimes.com", url: "nytimes.com" }
+    { name: "shopify.com", url: "shopify.com" }
   ];
 
   return (
@@ -676,7 +676,7 @@ export default function App() {
             <div className="text-center space-y-5 mb-10">
               <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 border border-blue-100 px-4 py-2 rounded-full text-xs font-bold tracking-wide uppercase shadow-xs">
                 <Award className="w-4 h-4 text-yellow-500" />
-                Live V5 Diagnostics Module
+                Live Performance & SEO Audit
               </div>
               
               <h2 className="text-4xl md:text-5xl font-black font-display tracking-tight text-slate-900 leading-tight">
@@ -691,10 +691,38 @@ export default function App() {
               </p>
             </div>
 
+            {/* Device View Config Tab (Above input capsule, centered horizontally) */}
+            <div className="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200 shrink-0 select-none mx-auto mb-6">
+              <button
+                id="toggle-strat-mobile"
+                onClick={() => setStrategy("mobile")}
+                className={`px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  strategy === "mobile" 
+                    ? "bg-white text-slate-900 shadow-sm border border-slate-200" 
+                    : "text-slate-500 hover:text-slate-900"
+                }`}
+              >
+                <Smartphone className="w-4 h-4" />
+                <span>Mobile</span>
+              </button>
+              <button
+                id="toggle-strat-desktop"
+                onClick={() => setStrategy("desktop")}
+                className={`px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  strategy === "desktop" 
+                    ? "bg-white text-blue-600 shadow-sm border border-slate-200" 
+                    : "text-slate-500 hover:text-blue-600"
+                }`}
+              >
+                <Monitor className="w-4 h-4" />
+                <span>Desktop</span>
+              </button>
+            </div>
+
             {/* Core Search & Strategy Input */}
             <div className="w-full max-w-2xl bg-white rounded-2xl border border-slate-200 shadow-xl p-3.5 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
               <div className="flex flex-col md:flex-row items-center gap-4">
-                <div className="flex-1 flex items-center gap-3 pl-3 w-full">
+                <div className="flex-1 flex-grow flex items-center gap-3 pl-3 w-full">
                   <Globe className="w-5.5 h-5.5 text-slate-400 shrink-0" />
                   <input
                     id="target-url-input"
@@ -707,39 +735,11 @@ export default function App() {
                   />
                 </div>
 
-                {/* Device View Config Tab */}
-                <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0 select-none w-full md:w-auto">
-                  <button
-                    id="toggle-strat-mobile"
-                    onClick={() => setStrategy("mobile")}
-                    className={`flex-1 md:flex-initial px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                      strategy === "mobile" 
-                        ? "bg-white text-slate-900 shadow-sm border border-slate-200" 
-                        : "text-slate-500 hover:text-slate-900"
-                    }`}
-                  >
-                    <Smartphone className="w-4 h-4" />
-                    <span>Mobile</span>
-                  </button>
-                  <button
-                    id="toggle-strat-desktop"
-                    onClick={() => setStrategy("desktop")}
-                    className={`flex-1 md:flex-initial px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                      strategy === "desktop" 
-                        ? "bg-white text-blue-600 shadow-sm border border-slate-200" 
-                        : "text-slate-500 hover:text-blue-600"
-                    }`}
-                  >
-                    <Monitor className="w-4 h-4" />
-                    <span>Desktop</span>
-                  </button>
-                </div>
-
                 {/* Submit Trigger */}
                 <button
                   id="landing-submit-btn"
                   onClick={() => startAnalysis()}
-                  className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl text-xs font-bold tracking-wide transition-all duration-150 cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-blue-600/10 group active:scale-95"
+                  className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl text-xs font-bold tracking-wide transition-all duration-150 cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-blue-600/10 group active:scale-95 shrink-0"
                 >
                   <span>Analyze</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -1763,7 +1763,7 @@ export default function App() {
       {/* FOOTER */}
       <footer className="bg-white border-t border-slate-200 py-6 px-6 text-center text-xs text-slate-400 shrink-0">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-          <p>© 2026 Speed Insights by <strong className="text-slate-600 font-display">Netolink</strong>. Enabled with 100% production-quality Google PageSpeed API integration.</p>
+          <p>© 2026 Speed Insights by <strong className="text-slate-600 font-display">Netolink</strong>. Powered by 100% official and quality Google performance technology.</p>
           <div className="flex gap-4 items-center">
             <span className="text-slate-350">|</span>
             <span className="text-blue-600 font-bold inline-flex items-center gap-1.5 select-none">
