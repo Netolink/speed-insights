@@ -97,6 +97,62 @@ interface ParsedReport {
 }
 
 export default function App() {
+  // Frame-busting security check inside a useEffect hook
+  useEffect(() => {
+    const isIframe = window.self !== window.top;
+    if (isIframe) {
+      let parentDomain = "";
+      let isAuthorized = false;
+
+      // Safe access to top window location or fallback to referrer (for cross-origin frames)
+      try {
+        if (window.top && window.top.location) {
+          parentDomain = window.top.location.hostname;
+        }
+      } catch (e) {
+        if (document.referrer) {
+          try {
+            const referrerUrl = new URL(document.referrer);
+            parentDomain = referrerUrl.hostname;
+          } catch (err) {
+            // Fail silent or non-parsable referrer
+          }
+        }
+      }
+
+      if (parentDomain) {
+        const lowerDomain = parentDomain.toLowerCase();
+        isAuthorized =
+          lowerDomain === "netolink.com" ||
+          lowerDomain.endsWith(".netolink.com") ||
+          lowerDomain === "netolink.co.il" ||
+          lowerDomain.endsWith(".netolink.co.il");
+      }
+
+      // Safeguard check to bypass frame busting inside development hosts and the AI Studio sandbox
+      const currentHost = window.location.hostname;
+      const isDevEnv =
+        currentHost === "localhost" ||
+        currentHost.includes("127.0.0.1") ||
+        currentHost.includes("run.app") ||
+        (document.referrer && (
+          document.referrer.includes("ai.studio") ||
+          document.referrer.includes("google.com")
+        ));
+
+      if (!isAuthorized && !isDevEnv) {
+        try {
+          if (window.top) {
+            window.top.location.href = window.self.location.href;
+          }
+        } catch (e) {
+          // Fallback breakout option
+          window.top.location.href = window.self.location.href;
+        }
+      }
+    }
+  }, []);
+
   const [urlInput, setUrlInput] = useState("");
   const [strategy, setStrategy] = useState<"mobile" | "desktop">("desktop");
   const [mobileReport, setMobileReport] = useState<ParsedReport | null>(null);
