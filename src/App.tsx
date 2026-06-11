@@ -864,7 +864,7 @@ export default function App() {
                 </div>
                 
                 <p className="text-xs text-slate-400">
-                  Analyzed on: <strong className="text-slate-600 font-mono">{reportData.fetchTime}</strong> via production UX Engine v5 API
+                  Analyzed on: <strong className="text-slate-600 font-mono">{reportData.fetchTime}</strong> via Google core performance engine
                 </p>
               </div>
 
@@ -1763,12 +1763,8 @@ export default function App() {
       {/* FOOTER */}
       <footer className="bg-white border-t border-slate-200 py-6 px-6 text-center text-xs text-slate-400 shrink-0">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-          <p>© 2026 Speed Insights by <strong className="text-slate-600 font-display">Netolink</strong>. Powered by 100% official and quality Google performance technology.</p>
+          <p>© 2026 Speed Insights by <a href="https://netolink.com" target="_blank" rel="noopener noreferrer" className="text-slate-600 font-display font-black hover:underline">Netolink</a>. Powered by 100% official and quality Google performance technology.</p>
           <div className="flex gap-4 items-center">
-            <span className="text-slate-350">|</span>
-            <span className="text-blue-600 font-bold inline-flex items-center gap-1.5 select-none">
-              <Heart className="w-4 h-4 fill-blue-600 text-blue-600" /> Powered by High-Performance Systems
-            </span>
           </div>
         </div>
       </footer>
