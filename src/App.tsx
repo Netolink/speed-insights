@@ -184,7 +184,7 @@ export default function App() {
     }
 
     // Select API Key from Vite env variables
-    const apiKey = import.meta.env.VITE_PAGESPEED_API_KEY || import.meta.env.VITE_GOOGLE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
+    const apiKey = "AIzaSyC9bPMq4DxpxKEbnatTYfH3IG-31Tqk3xE" | import.meta.env.VITE_PAGESPEED_API_KEY || import.meta.env.VITE_GOOGLE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
 
     // Build Google PageSpeed Insights endpoint URL
     const googleApiUrl = new URL("https://www.googleapis.com/pagespeedonline/v5/runPagespeed");
