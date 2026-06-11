@@ -99,7 +99,11 @@ interface ParsedReport {
 export default function App() {
   const [urlInput, setUrlInput] = useState("");
   const [strategy, setStrategy] = useState<"mobile" | "desktop">("desktop");
-  const [reportData, setReportData] = useState<ParsedReport | null>(null);
+  const [mobileReport, setMobileReport] = useState<ParsedReport | null>(null);
+  const [desktopReport, setDesktopReport] = useState<ParsedReport | null>(null);
+
+  const reportData = strategy === "mobile" ? mobileReport : desktopReport;
+
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [loadingStep, setLoadingStep] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -124,9 +128,9 @@ export default function App() {
     if (!isAnalyzing) return;
 
     const loadingSteps = [
-      "Establishing link with official Google PageSpeed Core Servers...",
+      "Establishing link with official speed calculation servers...",
       "Resolving target domain records and response headers...",
-      "Fetching actual Lighthouse core JSON auditing configurations...",
+      "Fetching actual core JSON auditing configurations...",
       "Extracting Core Web Vitals datasets (LCP, INP, CLS, FCP)...",
       "Analyzing layout vectors, image scaling margins, and styles...",
       "Evaluating critical JavaScript threads, server latency, and DOM counts...",
@@ -156,6 +160,7 @@ export default function App() {
   };
 
   // Run the Live Google PageSpeed Insights Audit
+  // Run the Live Core Performance Insights Audit
   const startAnalysis = async (customUrl?: string) => {
     const target = (customUrl || urlInput).trim();
     if (!target) {
@@ -175,10 +180,20 @@ export default function App() {
     }
 
     // Validate URL format
+    let parsedUrl: URL;
     try {
-      new URL(targetUrl);
+      parsedUrl = new URL(targetUrl);
     } catch (err) {
-      setErrorMessage("The provided URL is invalid. Please double check and try again.");
+      setErrorMessage("Please enter a valid URL (e.g., example.com).");
+      setIsAnalyzing(false);
+      return;
+    }
+
+    const hostname = parsedUrl.hostname;
+    // Domain validator ensuring a standard domain suffix
+    const tldRegex = /\.[a-z0-9-]{2,}$/i;
+    if (!hostname.includes(".") || !tldRegex.test(hostname)) {
+      setErrorMessage("Please enter a valid URL (e.g., example.com).");
       setIsAnalyzing(false);
       return;
     }
@@ -186,67 +201,14 @@ export default function App() {
     // Select API Key from Vite env variables or hardcoded fallback
     const apiKey = import.meta.env.VITE_PAGESPEED_API_KEY || import.meta.env.VITE_GOOGLE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyC9bPMq4DxpxKEbnatTYfH3IG-31Tqk3xE";
 
-    // Build Google PageSpeed Insights endpoint URL
-    const googleApiUrl = new URL("https://www.googleapis.com/pagespeedonline/v5/runPagespeed");
-    googleApiUrl.searchParams.append("url", targetUrl);
-    googleApiUrl.searchParams.append("strategy", strategy);
-    googleApiUrl.searchParams.append("category", "performance");
-    googleApiUrl.searchParams.append("category", "accessibility");
-    googleApiUrl.searchParams.append("category", "best-practices");
-    googleApiUrl.searchParams.append("category", "seo");
-
-    if (apiKey && apiKey !== "MY_GEMINI_API_KEY" && apiKey !== "") {
-      googleApiUrl.searchParams.append("key", apiKey);
-    }
-
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout
-
-      let response;
-      try {
-        response = await fetch(googleApiUrl.toString(), {
-          method: "GET",
-          headers: {
-            "Accept": "application/json",
-          },
-          referrerPolicy: "no-referrer-when-downgrade",
-          signal: controller.signal,
-        });
-      } catch (fetchErr: any) {
-        clearTimeout(timeoutId);
-        if (fetchErr.name === "AbortError") {
-          throw new Error("The analysis timed out. Google PageSpeed API took longer than 90 seconds to respond.");
-        }
-        throw fetchErr;
-      }
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorResponse = await response.json().catch(() => ({}));
-        const status = response.status;
-        
-        let friendlyError = "Google PageSpeed Insights was unable to audit this page.";
-        if (status === 400) {
-          friendlyError = "Google PageSpeed API reported an error (invalid URL or inaccessible page).";
-        } else if (status === 429) {
-          friendlyError = "Too many requests. Please check your API quota or retry in a moment.";
-        } else if (status === 500) {
-          friendlyError = "The Google audit server encountered an error processing this page.";
-        }
-
-        const errMsg = errorResponse?.error?.message || response.statusText || friendlyError;
-        throw new Error(errMsg);
-      }
-
-      const rawData = await response.json();
+    // Reusable Result Parser function
+    const parseLighthouseResult = (rawData: any, strat: "mobile" | "desktop", targetStr: string): ParsedReport => {
       const lighthouse = rawData?.lighthouseResult;
       const categoriesBlob = lighthouse?.categories;
       const audits = lighthouse?.audits || {};
 
       if (!lighthouse || !categoriesBlob) {
-        throw new Error("Unable to parse PageSpeed result. The target website might be offline or blocking automated Google crawls.");
+        throw new Error("Unable to parse PageSpeed result. The target website might be offline or blocking automated crawls.");
       }
 
       // 1. Calculate Scores
@@ -259,8 +221,8 @@ export default function App() {
 
       // 2. Hardware Environment Setup
       const environment = {
-        userAgent: lighthouse?.environment?.userAgent || "Lighthouse Speed Insights Engine",
-        emulatedFormFactor: lighthouse?.configSettings?.formFactor || strategy,
+        userAgent: lighthouse?.environment?.userAgent || "Speed Insights Engine",
+        emulatedFormFactor: lighthouse?.configSettings?.formFactor || strat,
         throttling: lighthouse?.environment?.networkUserAgent || "Simulated Broadband Network",
         benchmarkIndex: Math.round(lighthouse?.environment?.benchmarkIndex || 1000)
       };
@@ -305,7 +267,7 @@ export default function App() {
               value: displayVal,
               status: mData.category === "FAST" ? "good" : mData.category === "AVERAGE" ? "needs-improvement" : "poor",
               score: mData.category === "FAST" ? 1.0 : mData.category === "AVERAGE" ? 0.6 : 0.25,
-              description: `aggregated 28-day browser user data sourced from real Chrome users accessing this domain.`
+              description: `aggregated 28-day browser user data sourced from real web users accessing this domain.`
             });
           }
         });
@@ -414,10 +376,9 @@ export default function App() {
         }
       };
 
-      // Construct Parsed Report Model
-      const finalReport: ParsedReport = {
-        url: target,
-        strategy: strategy,
+      return {
+        url: targetStr,
+        strategy: strat,
         fetchTime: new Date().toLocaleDateString("en-US", {
           year: "numeric",
           month: "short",
@@ -433,14 +394,88 @@ export default function App() {
         fieldData: fieldDataList,
         categories: categoriesParsed
       };
+    };
 
-      setReportData(finalReport);
-      // Automatically focus on active category
-      setActiveTab("performance");
+    // Reusable API URL builder
+    const buildApiUrl = (strat: "mobile" | "desktop") => {
+      const googleApiUrl = new URL("https://www.googleapis.com/pagespeedonline/v5/runPagespeed");
+      googleApiUrl.searchParams.append("url", targetUrl);
+      googleApiUrl.searchParams.append("strategy", strat);
+      googleApiUrl.searchParams.append("category", "performance");
+      googleApiUrl.searchParams.append("category", "accessibility");
+      googleApiUrl.searchParams.append("category", "best-practices");
+      googleApiUrl.searchParams.append("category", "seo");
+
+      if (apiKey && apiKey !== "MY_GEMINI_API_KEY" && apiKey !== "") {
+        googleApiUrl.searchParams.append("key", apiKey);
+      }
+      return googleApiUrl.toString();
+    };
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout
+
+      const executeFetch = async (strat: "mobile" | "desktop") => {
+        const fetchUrl = buildApiUrl(strat);
+        const response = await fetch(fetchUrl, {
+          method: "GET",
+          headers: {
+            "Accept": "application/json",
+          },
+          referrerPolicy: "no-referrer-when-downgrade",
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          const errorResponse = await response.json().catch(() => ({}));
+          const status = response.status;
+          
+          let friendlyError = `The performance audit was unable to analyze this page for ${strat}.`;
+          if (status === 400) {
+            friendlyError = `The audit API reported an error for ${strat} (invalid URL or inaccessible page).`;
+          } else if (status === 429) {
+            friendlyError = "Too many requests. Please check your API quota or retry in a moment.";
+          } else if (status === 500) {
+            friendlyError = "The analysis server encountered an error processing this page.";
+          }
+
+          const errMsg = errorResponse?.error?.message || response.statusText || friendlyError;
+          throw new Error(errMsg);
+        }
+
+        return response.json();
+      };
+
+      try {
+        // Execute both analyses concurrently to enable instant layout switching
+        const [mobileRaw, desktopRaw] = await Promise.all([
+          executeFetch("mobile"),
+          executeFetch("desktop")
+        ]);
+
+        clearTimeout(timeoutId);
+
+        const parsedMobile = parseLighthouseResult(mobileRaw, "mobile", target);
+        const parsedDesktop = parseLighthouseResult(desktopRaw, "desktop", target);
+
+        setMobileReport(parsedMobile);
+        setDesktopReport(parsedDesktop);
+
+        // Keep active segment focused
+        setActiveTab("performance");
+
+      } catch (fetchErr: any) {
+        clearTimeout(timeoutId);
+        if (fetchErr.name === "AbortError") {
+          throw new Error("The analysis timed out. The response took longer than 90 seconds to settle.");
+        }
+        throw fetchErr;
+      }
 
     } catch (err: any) {
       console.error(err);
-      setErrorMessage(err?.message || "Google PageSpeed Insights was unable to audit this URL. Ensure the site is live and allows public scans.");
+      setErrorMessage(err?.message || "We were unable to audit this URL. Ensure the site is live and allows public scans.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -449,7 +484,8 @@ export default function App() {
   // Reset the dashboard interface back to input landing
   const resetToLanding = () => {
     setUrlInput("");
-    setReportData(null);
+    setMobileReport(null);
+    setDesktopReport(null);
     setErrorMessage(null);
     setIsAnalyzing(false);
     setSearchQuery("");
@@ -614,7 +650,7 @@ export default function App() {
                 Speed Insights <span className="text-blue-400 font-medium text-sm px-2 py-0.5 rounded bg-slate-800 border border-slate-700">by Netolink</span>
               </h1>
               <p className="text-[10px] text-slate-400 font-mono tracking-widest font-bold uppercase">
-                Chrome UX Engine & Lighthouse Audit Core
+                Chrome UX Engine & UX Performance Core
               </p>
             </div>
           </div>
@@ -625,7 +661,7 @@ export default function App() {
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
             </span>
             <span className="text-xs font-mono font-bold tracking-wide text-slate-300 bg-slate-850 px-3 py-1 rounded-full border border-slate-800">
-              Live Google PSI
+              Live Core Engine
             </span>
           </div>
         </div>
@@ -651,7 +687,7 @@ export default function App() {
               </h2>
               
               <p className="text-sm md:text-base text-slate-500 max-w-2xl mx-auto leading-relaxed">
-                Connect directly with Google's production PageSpeed API. Execute automated scans targeting mobile cellular rates or high-tier desktop systems to generate a customized optimization dashboard.
+                Analyze and optimize your web ecosystem's performance instantly. Execute automated scans targeting mobile or desktop environments to generate a customized dashboard.
               </p>
             </div>
 
@@ -760,13 +796,13 @@ export default function App() {
 
             <div className="space-y-3.5">
               <h3 className="text-xl font-bold text-slate-900 tracking-tight">
-                Performing Google Performance Audit
+                Performing comprehensive performance audit...
               </h3>
               <p id="analysis-step-text" className="text-xs text-blue-600 font-mono tracking-wide font-bold h-7 max-w-md mx-auto line-clamp-1">
                 {loadingStep}
               </p>
               <p className="text-xs text-slate-400 leading-relaxed max-w-sm mx-auto">
-                Running live Lighthouse emulations over broadband networks. This normally takes 10 to 25 seconds for mobile & desktop scripts to fully settle and parse core metrics.
+                Running live ecosystem emulations over broadband networks. This normally takes 10 to 25 seconds to settle and parse core metrics.
               </p>
             </div>
 
@@ -798,14 +834,37 @@ export default function App() {
                     {reportData.url}
                   </span>
                   
-                  <span className="bg-blue-50 text-blue-700 text-[10px] font-bold uppercase py-1 px-3 rounded-full border border-blue-100 flex items-center gap-1.5 shrink-0">
-                    {reportData.strategy === "mobile" ? <Smartphone className="w-3.5 h-3.5 text-blue-600" /> : <Monitor className="w-3.5 h-3.5 text-blue-600" />}
-                    {reportData.strategy} view
-                  </span>
+                  {/* Post-Audit Active Device Switcher */}
+                  <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 select-none items-center shrink-0">
+                    <button
+                      id="report-toggle-strat-mobile"
+                      onClick={() => setStrategy("mobile")}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        strategy === "mobile" 
+                          ? "bg-white text-slate-950 shadow-sm border border-slate-200/50" 
+                          : "text-slate-500 hover:text-slate-800"
+                      }`}
+                    >
+                      <Smartphone className="w-3.5 h-3.5" />
+                      <span>Mobile View</span>
+                    </button>
+                    <button
+                      id="report-toggle-strat-desktop"
+                      onClick={() => setStrategy("desktop")}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        strategy === "desktop" 
+                          ? "bg-white text-blue-600 shadow-sm border border-slate-200/50" 
+                          : "text-slate-500 hover:text-blue-600"
+                      }`}
+                    >
+                      <Monitor className="w-3.5 h-3.5" />
+                      <span>Desktop View</span>
+                    </button>
+                  </div>
                 </div>
                 
                 <p className="text-xs text-slate-400">
-                  Analyzed on: <strong className="text-slate-600 font-mono">{reportData.fetchTime}</strong> via official Google PSI v5 API
+                  Analyzed on: <strong className="text-slate-600 font-mono">{reportData.fetchTime}</strong> via production UX Engine v5 API
                 </p>
               </div>
 
@@ -825,7 +884,7 @@ export default function App() {
               <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
                   <Award className="w-4.5 h-4.5 text-blue-600" />
-                  Global Lighthouse Metrics
+                  Global Optimization Metrics
                 </h3>
                 <span className="text-[10px] font-mono text-slate-400">Values calculated synchronously</span>
               </div>
@@ -1141,7 +1200,7 @@ export default function App() {
                                       <div className="p-3.5 rounded-xl bg-amber-50/55 border border-amber-100 text-amber-800">
                                         <h5 className="font-bold flex items-center gap-1.5 uppercase tracking-wider text-[9px] text-amber-700 mb-1">
                                           <Info className="w-3.5 h-3.5 text-amber-600" />
-                                          Lighthouse Diagnostic Statement
+                                          Core Diagnostic Statement
                                         </h5>
                                         <p>{opp.explanation}</p>
                                       </div>
@@ -1149,7 +1208,7 @@ export default function App() {
 
                                     <div className="inline-flex flex-col gap-1.5 p-3.5 rounded-xl bg-white border border-slate-200">
                                       <span className="text-[9px] font-mono tracking-wider text-slate-450 uppercase font-black">
-                                        Google PSI Core Audit Reference ID
+                                        Engine Core Audit Reference ID
                                       </span>
                                       <span className="font-mono text-[11px] text-slate-800 bg-slate-50 border border-slate-200 px-3 py-1 rounded-md select-all w-fit">
                                         {opp.id}
