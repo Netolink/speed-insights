@@ -101,35 +101,24 @@ export default function App() {
   useEffect(() => {
     const isIframe = window.self !== window.top;
     if (isIframe) {
-      let parentDomain = "";
       let isAuthorized = false;
 
-      // Safe access to top window location or fallback to referrer (for cross-origin frames)
-      try {
-        if (window.top && window.top.location) {
-          parentDomain = window.top.location.hostname;
-        }
-      } catch (e) {
-        if (document.referrer) {
-          try {
-            const referrerUrl = new URL(document.referrer);
-            parentDomain = referrerUrl.hostname;
-          } catch (err) {
-            // Fail silent or non-parsable referrer
-          }
+      if (document.referrer) {
+        try {
+          const referrerUrl = new URL(document.referrer);
+          const parentHost = referrerUrl.hostname.toLowerCase();
+          
+          isAuthorized =
+            parentHost === "netolink.com" ||
+            parentHost.endsWith(".netolink.com") ||
+            parentHost === "netolink.co.il" ||
+            parentHost.endsWith(".netolink.co.il");
+        } catch (err) {
+          // Non-parsable or invalid referrer URL
         }
       }
 
-      if (parentDomain) {
-        const lowerDomain = parentDomain.toLowerCase();
-        isAuthorized =
-          lowerDomain === "netolink.com" ||
-          lowerDomain.endsWith(".netolink.com") ||
-          lowerDomain === "netolink.co.il" ||
-          lowerDomain.endsWith(".netolink.co.il");
-      }
-
-      // Safeguard check to bypass frame busting inside development hosts and the AI Studio sandbox
+      // Safeguard check to bypass frame busting inside development hosts, run.app, Google, and AI Studio
       const currentHost = window.location.hostname;
       const isDevEnv =
         currentHost === "localhost" ||
@@ -142,11 +131,8 @@ export default function App() {
 
       if (!isAuthorized && !isDevEnv) {
         try {
-          if (window.top) {
-            window.top.location.href = window.self.location.href;
-          }
+          window.top.location.href = window.self.location.href;
         } catch (e) {
-          // Fallback breakout option
           window.top.location.href = window.self.location.href;
         }
       }
