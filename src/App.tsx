@@ -168,21 +168,75 @@ export default function App() {
     setExpandedAuditId(null);
     setCheckedManualItems({});
 
+    // Prepend https:// if not supplied
+    let targetUrl = target;
+    if (!/^https?:\/\//i.test(targetUrl)) {
+      targetUrl = "https://" + targetUrl;
+    }
+
+    // Validate URL format
     try {
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          url: target,
-          strategy: strategy
-        })
-      });
+      new URL(targetUrl);
+    } catch (err) {
+      setErrorMessage("The provided URL is invalid. Please double check and try again.");
+      setIsAnalyzing(false);
+      return;
+    }
+
+    // Select API Key from Vite env variables
+    const apiKey = import.meta.env.VITE_PAGESPEED_API_KEY || import.meta.env.VITE_GOOGLE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
+
+    // Build Google PageSpeed Insights endpoint URL
+    const googleApiUrl = new URL("https://www.googleapis.com/pagespeedonline/v5/runPagespeed");
+    googleApiUrl.searchParams.append("url", targetUrl);
+    googleApiUrl.searchParams.append("strategy", strategy);
+    googleApiUrl.searchParams.append("category", "performance");
+    googleApiUrl.searchParams.append("category", "accessibility");
+    googleApiUrl.searchParams.append("category", "best-practices");
+    googleApiUrl.searchParams.append("category", "seo");
+
+    if (apiKey && apiKey !== "MY_GEMINI_API_KEY" && apiKey !== "") {
+      googleApiUrl.searchParams.append("key", apiKey);
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout
+
+      let response;
+      try {
+        response = await fetch(googleApiUrl.toString(), {
+          method: "GET",
+          headers: {
+            "Accept": "application/json",
+          },
+          signal: controller.signal,
+        });
+      } catch (fetchErr: any) {
+        clearTimeout(timeoutId);
+        if (fetchErr.name === "AbortError") {
+          throw new Error("The analysis timed out. Google PageSpeed API took longer than 90 seconds to respond.");
+        }
+        throw fetchErr;
+      }
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const errorPayload = await response.json().catch(() => ({}));
-        throw new Error(errorPayload?.error || `Failed to analyze page. Status Code: ${response.status}`);
+        const errorResponse = await response.json().catch(() => ({}));
+        const status = response.status;
+        
+        let friendlyError = "Google PageSpeed Insights was unable to audit this page.";
+        if (status === 400) {
+          friendlyError = "Google PageSpeed API reported an error (invalid URL or inaccessible page).";
+        } else if (status === 429) {
+          friendlyError = "Too many requests. Please check your API quota or retry in a moment.";
+        } else if (status === 500) {
+          friendlyError = "The Google audit server encountered an error processing this page.";
+        }
+
+        const errMsg = errorResponse?.error?.message || response.statusText || friendlyError;
+        throw new Error(errMsg);
       }
 
       const rawData = await response.json();
